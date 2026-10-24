@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub 加速器 · Lele</title>
+  <script src="//open.thunderurl.com/thunder-link.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- ============================================================
+       ⚙️ 配置区（已填好）
+       ============================================================ -->
+  <script>
+    const GITHUB_CLIENT_ID = "Ov23li32HVAFbAV5NrrY";
+    const OAUTH_EXCHANGE_URL = "https://gh.15527781950.workers.dev";
+    const OAUTH_SCOPE = "read:user public_repo";
+    const OAUTH_CALLBACK_URL = window.location.origin + window.location.pathname;
+    const GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
+    const DEFAULT_TEST_URL = "https://github.com/sltlele/hlbot/archive/refs/heads/main.zip";
+  </script>
+
+  <style>
+    :root {
+      --bg:#0d1117; --bg-card:#161b22; --bg-input:#21262d; --border:#30363d;
+      --text:#e6edf3; --text-secondary:#8b949e; --accent:#2f81f7; --accent-hover:#1f6feb;
+      --success:#3fb950; --danger:#f85149; --warning:#d29922;
+      --radius:12px;
+      --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+    }
+    [data-theme="light"] {
+      --bg:#f6f8fa; --bg-card:#ffffff; --bg-input:#f6f8fa; --border:#d0d7de;
+      --text:#1f2328; --text-secondary:#656d76; --accent:#0969da; --accent-hover:#0550ae;
+      --success:#1a7f37; --danger:#cf222e; --warning:#9a6700;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+      display:flex;flex-direction:column;align-items:center;padding:24px 16px;
+      transition:background .3s,color .3s;
+    }
+    .topbar{width:100%;max-width:860px;display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;gap:12px;}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;}
+    .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:18px;}
+    .topbar-right{display:flex;gap:8px;}
+    .theme-toggle{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--text);font-size:14px;white-space:nowrap;}
+    .theme-toggle:hover{border-color:var(--accent);}
+    .card{width:100%;max-width:860px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:20px;}
+    .card-title{font-size:22px;font-weight:700;margin-bottom:8px;}
+    .card-desc{color:var(--text-secondary);font-size:14px;line-height:1.6;margin-bottom:20px;}
+    .input-group{display:flex;gap:10px;margin-bottom:8px;}
+    .input-group input{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:14px 16px;color:var(--text);font-size:15px;font-family:monospace;outline:none;}
+    .input-group input:focus{border-color:var(--accent);}
+    .btn{border:none;border-radius:8px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover{background:var(--accent-hover);}
+    .btn-secondary{background:var(--bg-input);color:var(--text);border:1px solid var(--border);}
+    .btn-secondary:hover{border-color:var(--accent);}
+    .btn-sm{padding:7px 14px;font-size:13px;border-radius:6px;}
+    .type-hint{font-size:13px;color:var(--text-secondary);min-height:20px;margin-bottom:8px;padding-left:2px;}
+    .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-right:6px;}
+    .tag-release{background:rgba(63,185,80,.15);color:var(--success);}
+    .tag-raw{background:rgba(210,153,34,.15);color:var(--warning);}
+    .tag-gist{background:rgba(47,129,247,.15);color:var(--accent);}
+    .tag-clone{background:rgba(248,81,73,.15);color:var(--danger);}
+    .tag-other{background:rgba(139,148,158,.15);color:var(--text-secondary);}
+    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+    .section-header h2{font-size:17px;font-weight:600;}
+
+    .node-selector{border:1px solid var(--border);border-radius:10px;margin-top:14px;background:var(--bg-input);overflow:hidden;}
+    .node-selector-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none;font-size:14px;gap:10px;flex-wrap:wrap;}
+    .node-selector-header:hover{background:rgba(47,129,247,.05);}
+    .node-selector-header .current-node{font-weight:700;color:var(--accent);}
+    .node-selector-header .arrow{transition:transform .2s;font-size:12px;color:var(--text-secondary);}
+    .node-selector.open .arrow{transform:rotate(180deg);}
+    .node-selector-status{
+      font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;
+      padding:2px 10px;border-radius:20px;background:rgba(47,129,247,.08);
+      white-space:nowrap;
+    }
+    .node-selector-status .dot{
+      width:8px;height:8px;border-radius:50%;background:var(--accent);
+      animation:pulse 1s infinite;
+    }
+    .node-selector-status.done{background:rgba(63,185,80,.1);color:var(--success);}
+    .node-selector-status.done .dot{background:var(--success);animation:none;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .node-selector-body{border-top:1px solid var(--border);padding:12px 16px;max-height:380px;overflow-y:auto;}
+    .node-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text-secondary);}
+    .node-option{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+    .node-option:last-child{border-bottom:none;}
+    .node-option.best{background:rgba(63,185,80,.06);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:6px;}
+    .node-option label{display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;min-width:0;}
+    .node-option input[type="radio"]{accent-color:var(--accent);flex-shrink:0;}
+    .node-option-name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .node-option-latency{font-size:12px;font-weight:600;min-width:64px;text-align:right;color:var(--text-secondary);}
+    .lat-good{color:var(--success);} .lat-slow{color:var(--warning);} .lat-timeout{color:var(--danger);}
+    .btn-icon{background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 9px;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s;}
+    .btn-icon:hover{background:var(--bg-card);border-color:var(--accent);}
+    .node-add-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+    .node-add-row input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;font-family:monospace;outline:none;}
+    .node-add-row input:focus{border-color:var(--accent);}
+
+    .repo-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-bottom:12px;}
+    .repo-meta span{background:var(--bg-input);padding:4px 12px;border-radius:20px;}
+    .repo-description{color:var(--text-secondary);font-size:14px;line-height:1.6;margin-bottom:12px;}
+    .readme-box{background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:14px;line-height:1.7;max-height:480px;overflow-y:auto;}
+    .readme-box h1,.readme-box h2,.readme-box h3{margin:14px 0 8px;}
+    .readme-box p{margin:8px 0;}
+    .readme-box code{background:rgba(110,118,129,.2);padding:2px 6px;border-radius:4px;font-size:13px;}
+    .readme-box pre{background:#0d1117;padding:14px;border-radius:8px;overflow-x:auto;margin:10px 0;}
+    [data-theme="light"] .readme-box pre{background:#f6f8fa;}
+    .readme-box pre code{background:none;padding:0;}
+    .readme-box img{max-width:100%;border-radius:6px;}
+    .readme-box table{border-collapse:collapse;width:100%;margin:10px 0;}
+    .readme-box th,.readme-box td{border:1px solid var(--border);padding:6px 10px;text-align:left;}
+
+    .release-item{background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+    .release-item.collapsed .release-content{display:none;}
+    .release-item.collapsed{padding:14px 20px;}
+    .release-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;cursor:pointer;user-select:none;}
+    .release-head:hover .release-name{color:var(--accent);}
+    .release-head-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .release-name{font-weight:700;font-size:15px;}
+    .release-tag{font-size:12px;background:rgba(47,129,247,.15);color:var(--accent);padding:2px 10px;border-radius:20px;}
+    .release-date{font-size:12px;color:var(--text-secondary);}
+    .release-toggle-hint{font-size:12px;color:var(--text-secondary);white-space:nowrap;}
+    .release-content{padding-top:4px;}
+    .release-body{font-size:13px;line-height:1.7;color:var(--text-secondary);white-space:pre-wrap;max-height:160px;overflow:hidden;position:relative;}
+    .release-body.expanded{max-height:none;}
+    .release-body::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,var(--bg-input));}
+    .release-body.expanded::after{display:none;}
+    .release-toggle{font-size:12px;color:var(--accent);cursor:pointer;margin-top:6px;display:inline-block;user-select:none;}
+    .release-assets{margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;}
+    .asset-row{display:flex;align-items:center;gap:10px;padding:8px 0;flex-wrap:wrap;}
+    .asset-row + .asset-row{border-top:1px solid rgba(48,54,61,.5);}
+    .asset-name{font-size:13px;font-family:monospace;flex:1;min-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .asset-size{font-size:12px;color:var(--text-secondary);min-width:60px;text-align:right;}
+    .asset-type-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(47,129,247,.15);color:var(--accent);}
+    .asset-actions{display:flex;gap:6px;flex-wrap:wrap;}
+    .asset-empty{font-size:13px;color:var(--text-secondary);padding:8px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+    .source-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--border);}
+    .source-path{font-family:monospace;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:1;min-width:200px;}
+    .source-path .crumb{color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:4px;}
+    .source-path .crumb:hover{background:rgba(47,129,247,.1);}
+    .source-path .sep{color:var(--text-secondary);}
+    .source-list{display:flex;flex-direction:column;gap:2px;}
+    .source-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;}
+    .source-item:hover{background:rgba(47,129,247,.06);}
+    .source-item.dir{cursor:pointer;}
+    .source-item .icon{font-size:14px;flex-shrink:0;width:20px;text-align:center;}
+    .source-item .name{font-size:13px;font-family:monospace;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .source-item .name:hover{color:var(--accent);}
+    .source-item .size{font-size:12px;color:var(--text-secondary);min-width:60px;text-align:right;}
+    .source-item .actions{display:flex;gap:6px;flex-shrink:0;}
+    .source-item .actions .btn-icon{padding:3px 8px;font-size:11px;}
+    .source-empty{text-align:center;padding:26px;color:var(--text-secondary);font-size:13px;}
+    .source-overflow{text-align:center;padding:10px;color:var(--warning);font-size:12px;}
+
+    .error-box{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.35);color:var(--warning);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;display:flex;align-items:flex-start;gap:10px;width:100%;}
+    .error-box .error-icon{font-size:16px;flex-shrink:0;}
+    .error-box .error-content{flex:1;}
+    .error-box .retry-btn{margin-top:8px;background:transparent;border:1px solid var(--warning);color:var(--warning);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;}
+    .error-box .retry-btn:hover{background:rgba(210,153,34,.12);}
+    .loading{text-align:center;padding:26px;color:var(--text-secondary);font-size:14px;}
+    .empty-state{text-align:center;padding:30px 20px;color:var(--text-secondary);font-size:14px;line-height:1.8;}
+    .api-status{font-size:12px;color:var(--text-secondary);background:var(--bg-input);padding:4px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;}
+    .api-status.low{color:var(--warning);border-color:rgba(210,153,34,.4);}
+
+    .auth-panel-inner{display:flex;flex-direction:column;gap:12px;}
+    .auth-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;}
+    .auth-gh-block{display:flex;flex-direction:column;gap:6px;flex:1;min-width:200px;}
+    .net-status-hint{
+      display:none;font-size:12px;line-height:1.5;color:var(--warning);
+      background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);
+      border-radius:6px;padding:6px 10px;
+    }
+    .net-status-hint.checking{color:var(--text-secondary);background:var(--bg-card);border-color:var(--border);}
+    .net-status-hint.ok{display:none;}
+
+    .token-status{margin-top:4px;font-size:13px;color:var(--text-secondary);line-height:1.7;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px 16px;}
+    .token-status .ok{color:var(--success);font-weight:600;}
+    .token-status .warn{color:var(--warning);font-weight:600;}
+    .token-status .muted{color:var(--text-secondary);}
+
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;}
+    .modal-box{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+    .modal-title{font-size:18px;font-weight:700;margin-bottom:10px;}
+    .modal-desc{color:var(--text-secondary);font-size:14px;line-height:1.7;margin-bottom:20px;}
+    .modal-actions{display:flex;flex-direction:column;gap:10px;}
+    .modal-actions .btn{width:100%;}
+    .modal-hint{font-size:12px;color:var(--text-secondary);margin-top:10px;text-align:center;}
+
+    .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--success);color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:300;max-width:90vw;text-align:center;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .footer{color:var(--text-secondary);font-size:13px;text-align:center;margin-top:8px;padding-bottom:40px;}
+
+    @media (max-width:640px){
+      .card{padding:18px;}
+      .input-group{flex-direction:column;}
+      .asset-name{min-width:100%;}
+      .topbar{flex-wrap:wrap;}
+      .source-item .size{display:none;}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo"><div class="logo-icon">⚡</div> GitHub 加速器</div>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="authToggleBtn">🔑 授权</button>
+      <button class="theme-toggle" id="themeToggle">🌙 深色</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">粘贴 GitHub 链接，解析仓库与下载</div>
+    <div class="card-desc">支持仓库主页、Release 文件、Raw、Gist、Git Clone。输入仓库主页会列出所有版本和文件。</div>
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="例如：https://github.com/user/repo 或 releases/download/.../file.zip" autocomplete="off" />
+      <button class="btn btn-primary" id="convertBtn">解析</button>
+    </div>
+    <div class="type-hint" id="typeHint"></div>
+
+    <div class="node-selector" id="nodeSelector">
+      <div class="node-selector-header" id="nodeSelectorHeader">
+        <span>下载节点：<span class="current-node" id="currentNodeName">加载中…</span></span>
+        <span class="node-selector-status" id="nodeSelectorStatus" style="display:none;">
+          <span class="dot"></span><span id="nodeSelectorStatusText">准备测速…</span>
+        </span>
+        <span class="arrow">▼ 展开选择</span>
+      </div>
+      <div class="node-selector-body" id="nodeSelectorBody" style="display:none;">
+        <div class="node-toolbar">
+          <button class="btn btn-secondary btn-sm" id="testAllNodes">🔄 重新测速</button>
+          <span>页面已自动测速，发现更快节点时会实时切换</span>
+        </div>
+        <div id="nodeOptions"></div>
+        <div class="node-add-row">
+          <input type="text" id="newNodeInput" placeholder="添加节点前缀，如 https://gh.example.com/" />
+          <button class="btn btn-secondary btn-sm" id="addNodeBtn">添加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="repoPanel" style="display:none;">
+    <div class="section-header">
+      <h2 style="font-size:17px;">📄 仓库信息</h2>
+      <span class="api-status" id="apiStatus" style="display:none;"></span>
+    </div>
+    <div class="repo-meta" id="repoMeta"></div>
+    <div id="repoDesc"></div>
+    <div class="section-header" style="margin-top:18px;"><h2>README</h2></div>
+    <div class="readme-box" id="readmeBox"></div>
+  </div>
+
+  <div class="card" id="releasePanel" style="display:none;">
+    <div class="section-header">
+      <h2 style="font-size:17px;">📦 版本发布</h2>
+    </div>
+    <div id="releaseList"></div>
+  </div>
+
+  <div class="card" id="sourcePanel" style="display:none;">
+    <div class="section-header">
+      <h2 style="font-size:17px;">📂 仓库源代码</h2>
+    </div>
+    <div class="source-toolbar">
+      <div class="source-path" id="sourcePath"></div>
+      <button class="btn btn-secondary btn-sm" id="downloadZipBtn">⬇️ 下载完整源码 ZIP</button>
+    </div>
+    <div id="sourceList" class="source-list"></div>
+  </div>
+
+  <div class="card" id="directPanel" style="display:none;">
+    <div class="section-header">
+      <h2 style="font-size:17px;">⬇️ 下载</h2>
+    </div>
+    <div id="directList"></div>
+  </div>
+
+  <div class="card" id="authPanel" style="display:none;">
+    <div class="card-title" style="font-size:17px;">🔑 账户授权</div>
+    <div class="card-desc">登录 GitHub 或填入个人 Token，均可将 API 限额提升至 5000次/小时。授权信息仅保存在你的浏览器本地。</div>
+    <div class="auth-panel-inner">
+      <div class="auth-actions">
+        <div class="auth-gh-block">
+          <button class="btn btn-primary btn-sm" id="githubLoginBtn" style="width:100%;">使用 GitHub 账号登录</button>
+          <div class="net-status-hint" id="netStatusHint"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="logoutBtn" style="display:none;">退出登录</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input type="password" id="tokenInput" placeholder="或粘贴以 ghp_ 开头的 Token" style="flex:1;min-width:180px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:monospace;outline:none;" autocomplete="off" />
+        <button class="btn btn-secondary btn-sm" id="saveTokenBtn">保存 Token</button>
+      </div>
+      <div class="token-status" id="tokenStatus">正在检测…</div>
+    </div>
+  </div>
+
+  <div class="footer">Lele收集及维护本站</div>
+  <div class="toast" id="toast">已复制</div>
+
+  <div class="modal-overlay" id="authModal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title">需要 GitHub 授权</div>
+      <div class="modal-desc">查看 README、Release、源代码等信息需要调用 GitHub API。使用你自己的 GitHub 账号登录，可享受 5000次/小时 的额度，且授权信息不会泄露给第三方。</div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="modalGithubBtn">使用 GitHub 授权</button>
+        <button class="btn btn-secondary" id="modalTokenBtn">使用 Token 授权</button>
+        <button class="btn btn-secondary" id="modalCloseBtn">关闭</button>
+      </div>
+      <div class="modal-hint">关闭后仍可正常使用，但 API 限额为 60次/小时</div>
+    </div>
+  </div>
+
+<script>
+  // ============================================================
+  // 1. 节点列表
+  // ============================================================
+  const NODE_DOMAINS = [
+    "cdn.akaere.online","github.tbap.top","gh-proxy.com","cdn.gh-proxy.com","gh.dpik.top",
+    "ghf.无名氏.top","ghfile.geekertao.top","ghproxy.net","github.dpik.top","j.1lin.dpdns.org",
+    "github.starrlzy.cn","github-proxy.memory-echoes.cn","git.yylx.win","ghm.078465.xyz",
+    "gh.927223.xyz","gh.felicity.ac.cn","gh.bugdey.us.kg","jiashu.1win.eu.org","tvv.tw",
+    "j.1win.ggff.net","gitproxy.127731.xyz","gh.inkchills.cn","gh.catmak.name","gh.b52m.cn",
+    "down.mxw.xx.kg","down.mxw.qzz.io","github.mxw.qzz.io","gh.acmsz.top","gh.jjj.gv.uy",
+    "slink.ltd","github.tmby.shop","ghpr.cc","gitproxy.click","github.chenc.dev",
+    "gh.ddlc.top","gitproxy.mrhjx.cn","gh.sixyin.com","gh.monlor.com","ghpxy.hwinzniej.top",
+    "git.669966.xyz","ghfast.top","gh.jasonzeng.dev","github.geekery.cn","gp.zkitefly.eu.org",
+    "fastgit.cc","ghproxy.1888866.xyz","ghp.arslantu.xyz","github.ednovas.xyz",
+    "ghproxy.cxkpro.top","github.xxlab.tech","gh.idayer.com","free.cn.eu.org","gh.chjina.com",
+    "ghp.keleyaa.com","proxy.yaoyaoling.net","ghproxy.monkeyray.net","gh.noki.icu","g.blfrp.cn",
+    "githubdog.com","gh.meali.top","777.z321.cc.cd","gg.z321.cc.cd","g.z321.cc.cd",
+    "js.jiangss.shop","gap.andyjin.website","gh.my-website.ccwu.cc","github.ikgy.top",
+    "gh.07150721.xyz","cfgh.ikgy.top","xsadwsd.kdns.fr","gh.ruan.dpdns.org",
+    "ghproxy.felicity.land","github.nswrz.cn","gh.zhai.edu.pl","gh.qfmc0721.cc.cd",
+    "github-cf.947563.xyz","github.gohj99.site","githubproxy.gohj99.site","ghproxy.icu","ghgo.de5.net",
+  ];
+  const DEFAULT_NODES = NODE_DOMAINS.map(d => ({ name: d, prefix: "https://" + d + "/" }));
+  const STORAGE_KEY = "gh_accel_nodes_v6";
+  const SELECTED_KEY = "gh_accel_selected_node_v5";
+
+  function loadNodes() {
+    try {
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) { const a = JSON.parse(s); if (Array.isArray(a) && a.length) {
+        const filtered = a.filter(n => !n.prefix.includes("gh.tryxd.cn"));
+        if (filtered.length) return filtered;
+      } }
+    } catch (_) {}
+    return DEFAULT_NODES.map(n => ({ ...n }));
+  }
+  function saveNodes(n) { localStorage.setItem(STORAGE_KEY, JSON.stringify(n)); }
+
+  let nodes = loadNodes();
+  let selectedNodeIdx = parseInt(localStorage.getItem(SELECTED_KEY) || "0", 10);
+  if (!nodes[selectedNodeIdx]) selectedNodeIdx = 0;
+
+  // ============================================================
+  // 2. 工具
+  // ============================================================
+  function normalizeUrl(raw) {
+    let s = raw.trim();
+    if (!s) return "";
+    if (!/^https?:\/\//i.test(s)) {
+      if (/^(github\.com|raw\.githubusercontent\.com|gist\.github\.com)\//i.test(s)) s = "https://" + s;
+      else return s;
+    }
+    return s;
+  }
+  function buildAccelUrl(prefix, originalUrl) {
+    const p = prefix.endsWith("/") ? prefix : prefix + "/";
+    return p + originalUrl;
+  }
+  function getCurrentAccelUrl(originalUrl) {
+    if (!nodes[selectedNodeIdx]) return originalUrl;
+    return buildAccelUrl(nodes[selectedNodeIdx].prefix, originalUrl);
+  }
+  function showToast(msg, isError) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.background = isError ? "var(--danger)" : "var(--success)";
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+  async function copyText(text, silent) {
+    try { await navigator.clipboard.writeText(text); if (!silent) showToast("已复制"); }
+    catch (_) {
+      const ta = document.createElement("textarea"); ta.value = text;
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta); if (!silent) showToast("已复制");
+    }
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+  }
+  function formatSize(bytes) {
+    if (bytes === 0) return "0 B";
+    if (!bytes) return "";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + " KB";
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + " MB";
+    return (bytes/1024/1024/1024).toFixed(2) + " GB";
+  }
+  function getFileIcon(name, type) {
+    if (type === "dir") return "📁";
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    if (["zip","tar","gz","7z","rar","xz","bz2"].includes(ext)) return "🗜️";
+    if (["exe","msi","dmg","pkg","apk","ipa","deb","rpm","appimage"].includes(ext)) return "📦";
+    if (["png","jpg","jpeg","gif","svg","webp","ico"].includes(ext)) return "🖼️";
+    if (["mp4","mkv","avi","mov","webm"].includes(ext)) return "🎬";
+    if (["mp3","wav","flac","ogg"].includes(ext)) return "🎵";
+    if (["js","ts","py","java","go","rs","c","cpp","h","rb","php","swift","kt"].includes(ext)) return "📜";
+    if (["json","yaml","yml","toml","ini","cfg"].includes(ext)) return "⚙️";
+    if (["md","txt","rst"].includes(ext)) return "📄";
+    if (["html","htm","css","scss"].includes(ext)) return "🌐";
+    return "📄";
+  }
+
+  // ============================================================
+  // 3. 输入类型识别
+  // ============================================================
+  function classifyInput(url) {
+    let u;
+    try { u = new URL(url); } catch (_) { return { kind: "other" }; }
+    const path = u.pathname;
+    const parts = path.split("/").filter(Boolean);
+    if (u.hostname === "github.com") {
+      if (/\/releases\/download\//.test(path)) return { kind: "file", label: "Release 文件" };
+      if (/\/archive\//.test(path)) return { kind: "file", label: "源码归档" };
+      if (/\.git$/.test(path)) return { kind: "clone", label: "Git Clone" };
+      if (parts.length >= 2) return { kind: "repo", owner: parts[0], repo: parts[1].replace(/\.git$/, "") };
+    }
+    if (u.hostname === "raw.githubusercontent.com") return { kind: "file", label: "Raw 文件" };
+    if (u.hostname === "gist.github.com" || u.hostname === "gist.githubusercontent.com") return { kind: "file", label: "Gist" };
+    return { kind: "file", label: "链接" };
+  }
+  function extractRepoInfo(url) {
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (u.hostname === "github.com" && parts.length >= 2) return { owner: parts[0], repo: parts[1].replace(/\.git$/, "") };
+      if (u.hostname === "raw.githubusercontent.com" && parts.length >= 3) return { owner: parts[0], repo: parts[1] };
+    } catch (_) {}
+    return null;
+  }
+
+  // ============================================================
+  // 4. Token 管理
+  // ============================================================
+  const TOKEN_STORAGE_KEY = "gh_api_token";
+  const TOKEN_SOURCE_KEY = "gh_api_token_source";
+
+  function getUserToken() { return localStorage.getItem(TOKEN_STORAGE_KEY) || ""; }
+  function getTokenSource() { return localStorage.getItem(TOKEN_SOURCE_KEY) || ""; }
+  function saveToken(token, source) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    localStorage.setItem(TOKEN_SOURCE_KEY, source);
+  }
+  function clearToken() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_SOURCE_KEY);
+  }
+  function sourceLabel(src) {
+    if (src === "oauth") return "GitHub账号";
+    if (src === "manual") return "个人Token";
+    return "未登录";
+  }
+
+  // ============================================================
+  // 5. 网络连通性检测
+  // ============================================================
+  let netCheckCache = { at: 0, gh: null, worker: null, checking: false };
+
+  async function checkGitHubConnectivity() {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      try {
+        await fetch("https://github.com/favicon.ico", {
+          method: "GET",
+          mode: "no-cors",
+          signal: controller.signal,
+          cache: "no-store",
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function checkWorkerConnectivity() {
+    if (!OAUTH_EXCHANGE_URL) return null;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      try {
+        const res = await fetch(OAUTH_EXCHANGE_URL, {
+          method: "GET",
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        return res.ok || res.status < 500;
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function runConnectivityCheck(force = false) {
+    const now = Date.now();
+    if (!force && netCheckCache.gh !== null && now - netCheckCache.at < 30000) {
+      renderNetStatus();
+      return netCheckCache;
+    }
+    if (netCheckCache.checking) return netCheckCache;
+
+    netCheckCache.checking = true;
+    renderNetStatus(true);
+
+    const [gh, worker] = await Promise.all([
+      checkGitHubConnectivity(),
+      checkWorkerConnectivity(),
+    ]);
+    netCheckCache = { at: Date.now(), gh, worker, checking: false };
+    renderNetStatus();
+    return netCheckCache;
+  }
+
+  function renderNetStatus(isChecking) {
+    const hint = document.getElementById("netStatusHint");
+    if (!hint) return;
+
+    if (isChecking) {
+      hint.style.display = "block";
+      hint.className = "net-status-hint checking";
+      hint.textContent = "正在检测网络连通性…";
+      return;
+    }
+
+    const { gh, worker } = netCheckCache;
+    const problems = [];
+    if (gh === false) problems.push("无法连接 GitHub");
+    if (worker === false) problems.push("无法连接授权服务（Worker）");
+
+    if (problems.length === 0) {
+      hint.style.display = "none";
+      hint.className = "net-status-hint ok";
+      hint.textContent = "";
+    } else {
+      hint.style.display = "block";
+      hint.className = "net-status-hint";
+      hint.innerHTML = "⚠️ 当前网络不佳（" + problems.join("、") + "），请尝试使用其他方式。仍可点击按钮重试。";
+    }
+  }
+
+  // ============================================================
+  // 6. OAuth
+  // ============================================================
+  async function startGitHubLogin() {
+    if (!GITHUB_CLIENT_ID) { showToast("GitHub 授权尚未配置（缺少 Client ID）", true); return; }
+
+    // 点击时做一次快速检测，但不阻断——只提示
+    if (netCheckCache.gh === false || netCheckCache.worker === false) {
+      showToast("网络检测显示可能无法连通，仍将尝试跳转…", true);
+    }
+
+    const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))
+    ))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const state = crypto.randomUUID();
+    sessionStorage.setItem("gh_pkce_verifier", verifier);
+    sessionStorage.setItem("gh_oauth_state", state);
+    const url = `${GITHUB_AUTHORIZE_URL}?client_id=${encodeURIComponent(GITHUB_CLIENT_ID)}` +
+      `&redirect_uri=${encodeURIComponent(OAUTH_CALLBACK_URL)}` +
+      `&scope=${encodeURIComponent(OAUTH_SCOPE)}` +
+      `&state=${encodeURIComponent(state)}` +
+      `&code_challenge=${challenge}&code_challenge_method=S256`;
+    window.location.href = url;
+  }
+
+  function showOAuthError(title, detail) {
+    const old = document.getElementById("oauthErrorBanner");
+    if (old) old.remove();
+    const banner = document.createElement("div");
+    banner.id = "oauthErrorBanner";
+    banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;background:#f85149;color:#fff;padding:16px 20px;font-size:13px;line-height:1.7;font-family:monospace;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:pre-wrap;word-break:break-all;";
+    banner.innerHTML =
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">' +
+        '<div style="flex:1;"><b style="font-size:14px;">' + title + '</b><br>' + detail + '</div>' +
+        '<button style="background:transparent;border:1px solid #fff;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;white-space:nowrap;">关闭</button>' +
+      '</div>';
+    banner.querySelector("button").onclick = () => banner.remove();
+    document.body.appendChild(banner);
+  }
+
+  async function handleOAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (!code) return false;
+
+    const returnedState = params.get("state");
+    const savedState = sessionStorage.getItem("gh_oauth_state");
+    if (returnedState !== savedState) {
+      showOAuthError("登录失败：state 校验不通过",
+        "返回的 state：" + returnedState + "\n保存的 state：" + savedState +
+        "\n\n可能原因：你在另一个标签页完成了授权，或者 sessionStorage 被清空了。请回到原标签页重新点登录。");
+      history.replaceState({}, "", OAUTH_CALLBACK_URL);
+      return true;
+    }
+
+    const verifier = sessionStorage.getItem("gh_pkce_verifier");
+    if (!verifier) {
+      showOAuthError("登录失败：PKCE verifier 丢失",
+        "sessionStorage 里没有找到 code_verifier。\n\n可能原因：你把回调 URL 复制到了新标签页打开，或者中途刷新过页面。\n\n请回到原来的标签页，重新点「使用 GitHub 账号登录」，让浏览器自动跳转回来，不要手动复制链接。");
+      history.replaceState({}, "", OAUTH_CALLBACK_URL);
+      return true;
+    }
+
+    if (!OAUTH_EXCHANGE_URL) {
+      showOAuthError("登录失败：Worker 地址未配置", "请检查 HTML 顶部的 OAUTH_EXCHANGE_URL 变量。");
+      history.replaceState({}, "", OAUTH_CALLBACK_URL);
+      return true;
+    }
+
+    try {
+      const res = await fetch(OAUTH_EXCHANGE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, code_verifier: verifier }),
+      });
+      const rawText = await res.text();
+      let data = null;
+      try { data = JSON.parse(rawText); } catch (_) {}
+
+      if (data && data.access_token) {
+        saveToken(data.access_token, "oauth");
+        showToast("GitHub 登录成功");
+        history.replaceState({}, "", OAUTH_CALLBACK_URL);
+        renderTokenStatus();
+        updateAuthPanelVisibility();
+        return true;
+      }
+
+      const detail =
+        "Worker 返回状态：HTTP " + res.status + "\n" +
+        "Worker 原始响应：\n" + rawText + "\n\n" +
+        "code_verifier 长度：" + verifier.length + "\n" +
+        "请把以上内容完整截图发给管理员。";
+      showOAuthError("登录失败：Worker 换 Token 被拒绝", detail);
+    } catch (e) {
+      showOAuthError("登录失败：请求 Worker 时出错",
+        "错误信息：" + (e && e.message ? e.message : String(e)) +
+        "\n\n可能原因：Worker 地址写错、Worker 没部署成功、或网络被拦截。");
+    }
+
+    history.replaceState({}, "", OAUTH_CALLBACK_URL);
+    return true;
+  }
+
+  // ============================================================
+  // 7. GitHub API
+  // ============================================================
+  let rateLimitWarned = false;
+  function updateRateLimit(remaining, source) {
+    const el = document.getElementById("apiStatus");
+    if (!el) return;
+    const n = remaining === null || remaining === undefined ? null : parseInt(remaining, 10);
+    const src = source || getTokenSource() || "none";
+    el.style.display = "inline-block";
+    el.textContent = `API 剩余：${n === null || isNaN(n) ? "?" : n} · ${sourceLabel(src)}`;
+    el.className = "api-status" + (n !== null && !isNaN(n) && n <= 5 ? " low" : "");
+    if (remaining === "0" && !rateLimitWarned) {
+      rateLimitWarned = true;
+      showToast("GitHub API 次数已用完", true);
+    }
+  }
+  async function ghFetch(apiPath, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const url = "https://api.github.com" + apiPath;
+    const headers = { ...(options.headers || {}) };
+    const token = getUserToken();
+    if (token) headers["Authorization"] = `token ${token}`;
+    try {
+      const res = await fetch(url, { ...options, headers, signal: controller.signal });
+      updateRateLimit(res.headers.get("X-RateLimit-Remaining"), getTokenSource());
+      return res;
+    } finally { clearTimeout(timer); }
+  }
+  class ApiError extends Error {}
+  function buildErrorMessage(res, body, kind) {
+    if (res.status === 401) return "Token 无效或已过期，请重新授权。";
+    if (res.status === 404) {
+      if (kind === "readme") return "该仓库没有 README 文件。";
+      if (kind === "release") return "该仓库暂无 Release 发布。";
+      if (kind === "source") return "该目录不存在或无法访问。";
+      return "仓库不存在，或为私有仓库（无法公开访问）。";
+    }
+    if (res.status === 403 || res.status === 429) {
+      const remaining = res.headers.get("X-RateLimit-Remaining");
+      const reset = res.headers.get("X-RateLimit-Reset");
+      if (remaining === "0" && reset) {
+        const waitMin = Math.max(1, Math.ceil((new Date(parseInt(reset, 10) * 1000).getTime() - Date.now()) / 60000));
+        return `GitHub API 请求次数已用完。约 ${waitMin} 分钟后恢复。` +
+          (getTokenSource() === "" ? "点击右上角「授权」可提升至 5000次/小时。" : "");
+      }
+      return "GitHub API 拒绝访问（403），可能触发了频率限制。";
+    }
+    if (body && typeof body.message === "string") return `GitHub API 返回错误：${body.message}`;
+    return `请求失败（HTTP ${res.status}），请稍后重试。`;
+  }
+  function showInlineError(container, err, retryFn) {
+    let msg;
+    if (err instanceof ApiError) msg = err.message;
+    else if (err && err.name === "AbortError") msg = "请求超时（15 秒），请检查网络后重试。";
+    else msg = "网络请求失败，可能断网或被浏览器拦截。";
+    container.innerHTML = `
+      <div class="error-box">
+        <span class="error-icon">⚠️</span>
+        <div class="error-content">
+          <div>${escapeHtml(msg)}</div>
+          <button class="retry-btn">重试</button>
+        </div>
+      </div>`;
+    container.querySelector(".retry-btn").addEventListener("click", retryFn);
+  }
+
+  // ============================================================
+  // 8. Token 状态
+  // ============================================================
+  function renderTokenStatus() {
+    const el = document.getElementById("tokenStatus");
+    if (!el) return;
+    const token = getUserToken();
+    const source = getTokenSource();
+    const lines = [];
+    if (token && source === "oauth") lines.push(`<div>✅ 已通过 <span class="ok">GitHub 账号登录</span>（5000次/小时）</div>`);
+    else if (token && source === "manual") lines.push(`<div>✅ 已保存 <span class="ok">个人 Token</span>（5000次/小时）</div>`);
+    else lines.push(`<div>⚠️ 当前：<span class="warn">未登录</span>（60次/小时）· 点击右上角「授权」提升额度</div>`);
+    if (GITHUB_CLIENT_ID) lines.push(`<div class="muted">· GitHub 授权：已配置</div>`);
+    else lines.push(`<div class="muted">· GitHub 授权：未配置</div>`);
+    el.innerHTML = lines.join("");
+  }
+
+  // ============================================================
+  // 9. 授权面板 / 模态框
+  // ============================================================
+  function toggleAuthPanel(show, focusToken) {
+    const panel = document.getElementById("authPanel");
+    const isVisible = panel.style.display !== "none";
+    const willShow = typeof show === "boolean" ? show : !isVisible;
+    panel.style.display = willShow ? "block" : "none";
+    if (willShow) {
+      panel.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (focusToken) setTimeout(() => document.getElementById("tokenInput").focus(), 300);
+      // 打开面板时重新检测（网络可能变化）
+      runConnectivityCheck(true);
+    }
+  }
+  function updateAuthPanelVisibility() {
+    const hasToken = !!getUserToken();
+    document.getElementById("logoutBtn").style.display = hasToken ? "inline-block" : "none";
+    document.getElementById("tokenInput").value = hasToken && getTokenSource() === "manual" ? getUserToken() : "";
+    renderTokenStatus();
+  }
+  function showAuthModal() { document.getElementById("authModal").style.display = "flex"; }
+  function hideAuthModal() { document.getElementById("authModal").style.display = "none"; }
+
+  // ============================================================
+  // 10. 节点选择器
+  // ============================================================
+  function renderNodeSelector() {
+    document.getElementById("currentNodeName").textContent = nodes[selectedNodeIdx] ? nodes[selectedNodeIdx].name : "无节点";
+    const listEl = document.getElementById("nodeOptions");
+    if (!nodes.length) {
+      listEl.innerHTML = `<div class="empty-state" style="padding:16px;">暂无节点，请在下方添加。</div>`;
+      return;
+    }
+    listEl.innerHTML = nodes.map((n, i) => `
+      <div class="node-option${i === selectedNodeIdx ? " best" : ""}" data-idx="${i}">
+        <label>
+          <input type="radio" name="nodeRadio" value="${i}" ${i === selectedNodeIdx ? "checked" : ""} />
+          <span class="node-option-name" title="${escapeHtml(n.prefix)}">${escapeHtml(n.name)}</span>
+        </label>
+        <span class="node-option-latency" id="lat-${i}">—</span>
+        <button type="button" class="btn-icon test-node" data-idx="${i}">测速</button>
+        <button type="button" class="btn-icon del-node" data-idx="${i}">删除</button>
+      </div>`).join("");
+
+    listEl.querySelectorAll('input[name="nodeRadio"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        selectedNodeIdx = parseInt(radio.value, 10);
+        localStorage.setItem(SELECTED_KEY, selectedNodeIdx);
+        userManuallySelected = true;
+        document.getElementById("currentNodeName").textContent = nodes[selectedNodeIdx].name;
+        listEl.querySelectorAll(".node-option").forEach((el, i) => {
+          el.classList.toggle("best", i === selectedNodeIdx);
+        });
+        showToast(`已切换节点：${nodes[selectedNodeIdx].name}`);
+      });
+    });
+    listEl.querySelectorAll(".test-node").forEach(btn => {
+      btn.addEventListener("click", () => testSingleNode(parseInt(btn.dataset.idx, 10)));
+    });
+    listEl.querySelectorAll(".del-node").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        if (nodes.length <= 1) { showToast("至少保留一个节点", true); return; }
+        nodes.splice(idx, 1);
+        if (selectedNodeIdx >= nodes.length) selectedNodeIdx = nodes.length - 1;
+        saveNodes(nodes);
+        localStorage.setItem(SELECTED_KEY, selectedNodeIdx);
+        renderNodeSelector();
+        showToast("节点已删除");
+      });
+    });
+  }
+
+  function toggleNodeSelector(forceOpen) {
+    const sel = document.getElementById("nodeSelector");
+    const body = document.getElementById("nodeSelectorBody");
+    const header = document.getElementById("nodeSelectorHeader");
+    const isOpen = sel.classList.contains("open");
+    const willOpen = typeof forceOpen === "boolean" ? forceOpen : !isOpen;
+    sel.classList.toggle("open", willOpen);
+    body.style.display = willOpen ? "block" : "none";
+    header.querySelector(".arrow").textContent = willOpen ? "▲ 收起" : "▼ 展开选择";
+  }
+
+  // ============================================================
+  // 11. 测速
+  // ============================================================
+  let currentTestUrl = DEFAULT_TEST_URL;
+  const nodeLatencies = {};
+  let userManuallySelected = false;
+
+  async function measureLatency(url, timeoutMs = 8000) {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), timeoutMs);
+    const s = performance.now();
+    try {
+      await fetch(url, { method: "HEAD", mode: "no-cors", signal: c.signal, cache: "no-store" });
+      return { ok: true, ms: Math.round(performance.now() - s) };
+    } catch (_) { return { ok: false, ms: null }; }
+    finally { clearTimeout(t); }
+  }
+
+  function setLatencyDisplay(idx, ms) {
+    nodeLatencies[idx] = ms;
+    const el = document.getElementById(`lat-${idx}`);
+    if (!el) return;
+    if (ms === "testing") { el.textContent = "测速中…"; el.className = "node-option-latency"; }
+    else if (ms === null) { el.textContent = "超时"; el.className = "node-option-latency lat-timeout"; }
+    else { el.textContent = ms + "ms"; el.className = "node-option-latency " + (ms < 800 ? "lat-good" : "lat-slow"); }
+  }
+
+  function updateTestStatus(done, total, bestIdx, bestMs) {
+    const status = document.getElementById("nodeSelectorStatus");
+    const text = document.getElementById("nodeSelectorStatusText");
+    if (!status || !text) return;
+    status.style.display = "inline-flex";
+    if (done < total) {
+      status.className = "node-selector-status";
+      let s = `测速中 ${done}/${total}`;
+      if (bestIdx >= 0) s += ` · 最佳 ${bestMs}ms（${nodes[bestIdx].name}）`;
+      text.textContent = s;
+    } else {
+      status.className = "node-selector-status done";
+      if (bestIdx >= 0) text.textContent = `测速完成 · 最佳 ${bestMs}ms`;
+      else text.textContent = `测速完成 · 全部超时`;
+    }
+  }
+
+  function applyBestNode(idx) {
+    if (userManuallySelected) return;
+    selectedNodeIdx = idx;
+    localStorage.setItem(SELECTED_KEY, idx);
+    document.querySelectorAll('input[name="nodeRadio"]').forEach(r => {
+      r.checked = (parseInt(r.value, 10) === idx);
+    });
+    document.querySelectorAll(".node-option").forEach((el, i) => {
+      el.classList.toggle("best", i === idx);
+    });
+    document.getElementById("currentNodeName").textContent = nodes[idx].name;
+  }
+
+  let testGen = 0;
+  let silentTesting = false;
+
+  async function autoSpeedTest() {
+    if (silentTesting) testGen++;
+    silentTesting = true;
+    const gen = ++testGen;
+    userManuallySelected = false;
+
+    document.querySelectorAll(".node-option-latency").forEach(el => {
+      el.textContent = "—";
+      el.className = "node-option-latency";
+    });
+    Object.keys(nodeLatencies).forEach(k => delete nodeLatencies[k]);
+
+    const total = nodes.length;
+    if (!total) { silentTesting = false; return; }
+
+    let cursor = 0, done = 0;
+    let fastestIdx = -1, fastestMs = Infinity;
+    const concurrency = 8;
+
+    updateTestStatus(0, total, -1, 0);
+
+    async function worker() {
+      while (true) {
+        if (gen !== testGen) return;
+        const idx = cursor++;
+        if (idx >= total) return;
+        if (!nodes[idx]) return;
+        setLatencyDisplay(idx, "testing");
+        const r = await measureLatency(buildAccelUrl(nodes[idx].prefix, currentTestUrl));
+        if (gen !== testGen) return;
+        done++;
+        const ms = r.ok ? r.ms : null;
+        setLatencyDisplay(idx, ms);
+        if (ms !== null && ms < fastestMs) {
+          fastestMs = ms;
+          fastestIdx = idx;
+          applyBestNode(idx);
+        }
+        updateTestStatus(done, total, fastestIdx, fastestMs);
+      }
+    }
+    const workers = [];
+    for (let i = 0; i < Math.min(concurrency, total); i++) workers.push(worker());
+    await Promise.all(workers);
+
+    if (gen === testGen) {
+      silentTesting = false;
+      if (fastestIdx >= 0) showToast(`自动测速完成，最佳节点：${nodes[fastestIdx].name}（${fastestMs}ms）`);
+      else showToast("自动测速完成，但所有节点均超时", true);
+    }
+  }
+
+  async function testSingleNode(idx) {
+    if (!currentTestUrl) { showToast("暂无可测速链接", true); return; }
+    setLatencyDisplay(idx, "testing");
+    const r = await measureLatency(buildAccelUrl(nodes[idx].prefix, currentTestUrl));
+    setLatencyDisplay(idx, r.ok ? r.ms : null);
+  }
+
+  // ============================================================
+  // 12. 下载
+  // ============================================================
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-original-url]");
+    if (!btn) return;
+    const originalUrl = btn.dataset.originalUrl;
+    const action = btn.dataset.action;
+    const accelUrl = getCurrentAccelUrl(originalUrl);
+    if (action === "browser") window.open(accelUrl, "_blank");
+    else if (action === "thunder") thunderDownload(accelUrl);
+    else if (action === "copy") copyText(accelUrl);
+  });
+
+  async function thunderDownload(url) {
+    await copyText(url, true);
+    showToast("下载链接已复制，正在打开迅雷…");
+    try {
+      if (window.thunderLink && typeof window.thunderLink.newTask === "function") {
+        window.thunderLink.newTask({ tasks: [{ url: url }] });
+      } else {
+        window.location.href = "thunder://" + btoa("AA" + url + "ZZ");
+      }
+    } catch (_) { showToast("链接已复制，请手动粘贴到迅雷「新建任务」中", true); }
+  }
+
+  // ============================================================
+  // 13. 仓库信息 / README / Release
+  // ============================================================
+  let currentRepo = null;
+  async function loadRepoInfo(owner, repo) {
+    currentRepo = { owner, repo, defaultBranch: "main" };
+    document.getElementById("repoPanel").style.display = "block";
+    document.getElementById("repoMeta").innerHTML = "";
+    document.getElementById("repoDesc").innerHTML = "";
+    document.getElementById("readmeBox").innerHTML = `<div class="loading">加载中…</div>`;
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new ApiError(buildErrorMessage(res, body, "repo"));
+      }
+      const data = await res.json();
+      currentRepo.defaultBranch = data.default_branch || "main";
+      renderRepoMeta(data);
+    } catch (err) {
+      document.getElementById("readmeBox").innerHTML = "";
+      showInlineError(document.getElementById("repoMeta"), err, () => loadRepoInfo(owner, repo));
+      showSourcePanel();
+      loadRepoTree(owner, repo, "", currentRepo.defaultBranch);
+      return;
+    }
+    loadReadme(owner, repo);
+    showSourcePanel();
+    loadRepoTree(owner, repo, "", currentRepo.defaultBranch);
+  }
+
+  function renderRepoMeta(data) {
+    document.getElementById("repoMeta").innerHTML = `
+      <span>📦 ${escapeHtml(data.full_name)}</span>
+      <span>⭐ ${data.stargazers_count}</span>
+      <span>🍴 ${data.forks_count}</span>
+      ${data.language ? `<span>💻 ${escapeHtml(data.language)}</span>` : ""}
+      ${data.license ? `<span>📜 ${escapeHtml(data.license.spdx_id || data.license.name || "")}</span>` : ""}`;
+    document.getElementById("repoDesc").innerHTML = data.description
+      ? `<p class="repo-description">${escapeHtml(data.description)}</p>`
+      : `<p class="repo-description" style="opacity:.7;">该仓库没有填写简介。</p>`;
+  }
+
+  async function loadReadme(owner, repo) {
+    const box = document.getElementById("readmeBox");
+    box.innerHTML = `<div class="loading">加载 README 中…</div>`;
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}/readme`, {
+        headers: { Accept: "application/vnd.github.raw+json" },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new ApiError(buildErrorMessage(res, body, "readme"));
+      }
+      const md = await res.text();
+      box.innerHTML = (typeof marked !== "undefined" && marked.parse)
+        ? marked.parse(md)
+        : `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;">${escapeHtml(md)}</pre>`;
+    } catch (err) { showInlineError(box, err, () => loadReadme(owner, repo)); }
+  }
+
+  async function loadReleases(owner, repo) {
+    const panel = document.getElementById("releasePanel");
+    const list = document.getElementById("releaseList");
+    panel.style.display = "block";
+    list.innerHTML = `<div class="loading">加载 Release 中…</div>`;
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}/releases?per_page=10`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new ApiError(buildErrorMessage(res, body, "release"));
+      }
+      const releases = await res.json();
+      renderReleases(releases, owner, repo);
+    } catch (err) { showInlineError(list, err, () => loadReleases(owner, repo)); }
+  }
+
+  function renderReleases(releases, owner, repo) {
+    const list = document.getElementById("releaseList");
+    if (!Array.isArray(releases) || releases.length === 0) {
+      list.innerHTML = `<div class="empty-state">该仓库暂无 Release 发布。</div>`;
+      return;
+    }
+    const firstAsset = releases.find(r => r.assets && r.assets.length)?.assets[0];
+    if (firstAsset && firstAsset.browser_download_url !== currentTestUrl) {
+      currentTestUrl = firstAsset.browser_download_url;
+      autoSpeedTest();
+    }
+
+    list.innerHTML = releases.map((r, i) => {
+      const collapsed = i > 0;
+      const assets = r.assets || [];
+      const assetHtml = assets.length
+        ? assets.map(a => `
+            <div class="asset-row">
+              <span class="asset-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name)}</span>
+              <span class="asset-size">${formatSize(a.size)}</span>
+              <div class="asset-actions">
+                <button class="btn-icon" data-original-url="${escapeHtml(a.browser_download_url)}" data-action="browser">浏览器下载</button>
+                <button class="btn-icon" data-original-url="${escapeHtml(a.browser_download_url)}" data-action="thunder">迅雷下载</button>
+                <button class="btn-icon" data-original-url="${escapeHtml(a.browser_download_url)}" data-action="copy">复制</button>
+              </div>
+            </div>`).join("")
+        : `<div class="asset-empty">该版本没有上传文件。${r.tag_name ? `
+            <button class="btn-icon" data-original-url="https://github.com/${escapeHtml(owner)}/${escapeHtml(repo)}/archive/refs/tags/${encodeURIComponent(r.tag_name)}.zip" data-action="browser">下载源码 ZIP</button>` : ""}
+          </div>`;
+
+      return `
+        <div class="release-item${collapsed ? " collapsed" : ""}" data-rel-idx="${i}">
+          <div class="release-head" data-rel-head="${i}">
+            <div class="release-head-left">
+              <span class="release-name">${escapeHtml(r.name || r.tag_name || "未命名")}</span>
+              <span class="release-tag">${escapeHtml(r.tag_name || "")}</span>
+              <span class="release-date">${r.published_at ? new Date(r.published_at).toLocaleDateString("zh-CN") : ""}</span>
+            </div>
+            <span class="release-toggle-hint" data-rel-toggle="${i}">${collapsed ? "▼ 展开" : "▲ 收起"}</span>
+          </div>
+          <div class="release-content">
+            ${r.body ? `<div class="release-body" id="relBody${i}">${escapeHtml(r.body)}</div><span class="release-toggle" data-idx="${i}">展开全文</span>` : ""}
+            <div class="release-assets">${assetHtml}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    list.querySelectorAll("[data-rel-head]").forEach(head => {
+      head.addEventListener("click", (e) => {
+        if (e.target.closest(".release-toggle")) return;
+        if (e.target.closest(".asset-row")) return;
+        if (e.target.closest(".btn-icon")) return;
+        const idx = head.dataset.relHead;
+        const item = list.querySelector(`.release-item[data-rel-idx="${idx}"]`);
+        const hint = list.querySelector(`[data-rel-toggle="${idx}"]`);
+        if (!item) return;
+        item.classList.toggle("collapsed");
+        hint.textContent = item.classList.contains("collapsed") ? "▼ 展开" : "▲ 收起";
+      });
+    });
+
+    list.querySelectorAll(".release-toggle").forEach(t => {
+      t.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const body = document.getElementById(`relBody${t.dataset.idx}`);
+        if (!body) return;
+        body.classList.toggle("expanded");
+        t.textContent = body.classList.contains("expanded") ? "收起" : "展开全文";
+      });
+    });
+  }
+
+  // ============================================================
+  // 14. 仓库源代码
+  // ============================================================
+  const SOURCE_MAX_ITEMS = 300;
+
+  function showSourcePanel() {
+    document.getElementById("sourcePanel").style.display = "block";
+  }
+  function hideSourcePanel() {
+    document.getElementById("sourcePanel").style.display = "none";
+    document.getElementById("sourceList").innerHTML = "";
+    document.getElementById("sourcePath").innerHTML = "";
+  }
+
+  function renderSourcePath(path) {
+    const container = document.getElementById("sourcePath");
+    const parts = path ? path.split("/") : [];
+    const crumbs = [`<span class="crumb" data-path="">${escapeHtml(currentRepo.owner)}/${escapeHtml(currentRepo.repo)}</span>`];
+    let acc = "";
+    for (const p of parts) {
+      acc = acc ? acc + "/" + p : p;
+      crumbs.push(`<span class="sep">/</span>`);
+      crumbs.push(`<span class="crumb" data-path="${escapeHtml(acc)}">${escapeHtml(p)}</span>`);
+    }
+    container.innerHTML = crumbs.join("");
+    container.querySelectorAll(".crumb").forEach(c => {
+      c.addEventListener("click", () => {
+        loadRepoTree(currentRepo.owner, currentRepo.repo, c.dataset.path, currentRepo.defaultBranch);
+      });
+    });
+  }
+
+  async function loadRepoTree(owner, repo, path, branch) {
+    const listEl = document.getElementById("sourceList");
+    renderSourcePath(path);
+    listEl.innerHTML = `<div class="loading">加载目录中…</div>`;
+
+    const apiPath = `/repos/${owner}/${repo}/contents/${path ? path : ""}?ref=${encodeURIComponent(branch)}`;
+    let items;
+    try {
+      const res = await ghFetch(apiPath);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new ApiError(buildErrorMessage(res, body, "source"));
+      }
+      items = await res.json();
+    } catch (err) {
+      showInlineError(listEl, err, () => loadRepoTree(owner, repo, path, branch));
+      return;
+    }
+
+    if (!Array.isArray(items)) {
+      listEl.innerHTML = `<div class="source-empty">该路径不是一个目录。</div>`;
+      return;
+    }
+
+    items.sort((a, b) => {
+      if (a.type === "dir" && b.type !== "dir") return -1;
+      if (a.type !== "dir" && b.type === "dir") return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const displayItems = items.slice(0, SOURCE_MAX_ITEMS);
+    const overflow = items.length - displayItems.length;
+
+    if (!displayItems.length) {
+      listEl.innerHTML = `<div class="source-empty">该目录为空。</div>`;
+      return;
+    }
+
+    listEl.innerHTML = displayItems.map(item => {
+      const isDir = item.type === "dir";
+      const icon = getFileIcon(item.name, isDir ? "dir" : "file");
+      if (isDir) {
+        return `
+          <div class="source-item dir" data-dir-path="${escapeHtml(item.path)}">
+            <span class="icon">${icon}</span>
+            <span class="name">${escapeHtml(item.name)}/</span>
+            <span class="size"></span>
+            <div class="actions"></div>
+          </div>`;
+      }
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${item.path.split("/").map(encodeURIComponent).join("/")}`;
+      return `
+        <div class="source-item">
+          <span class="icon">${icon}</span>
+          <span class="name" title="${escapeHtml(item.path)}">${escapeHtml(item.name)}</span>
+          <span class="size">${formatSize(item.size)}</span>
+          <div class="actions">
+            <button class="btn-icon" data-original-url="${escapeHtml(rawUrl)}" data-action="browser">下载</button>
+            <button class="btn-icon" data-original-url="${escapeHtml(rawUrl)}" data-action="copy">复制</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    if (overflow > 0) {
+      listEl.innerHTML += `<div class="source-overflow">还有 ${overflow} 项未显示，请下载完整源码 ZIP 查看。</div>`;
+    }
+
+    listEl.querySelectorAll(".source-item.dir").forEach(el => {
+      el.addEventListener("click", () => {
+        loadRepoTree(owner, repo, el.dataset.dirPath, branch);
+      });
+    });
+  }
+
+  document.getElementById("downloadZipBtn").addEventListener("click", () => {
+    if (!currentRepo) return;
+    const branch = currentRepo.defaultBranch || "main";
+    const zipUrl = `https://github.com/${currentRepo.owner}/${currentRepo.repo}/archive/refs/heads/${encodeURIComponent(branch)}.zip`;
+    const accel = getCurrentAccelUrl(zipUrl);
+    window.open(accel, "_blank");
+  });
+
+  // ============================================================
+  // 15. 直接文件下载
+  // ============================================================
+  function showDirectDownload(url, label) {
+    document.getElementById("directPanel").style.display = "block";
+    const filename = (url.split("/").pop() || "下载文件").split("?")[0];
+    document.getElementById("directList").innerHTML = `
+      <div class="asset-row">
+        <span class="asset-name" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+        <span class="asset-type-tag">${escapeHtml(label)}</span>
+        <div class="asset-actions">
+          <button class="btn-icon" data-original-url="${escapeHtml(url)}" data-action="browser">浏览器下载</button>
+          <button class="btn-icon" data-original-url="${escapeHtml(url)}" data-action="thunder">迅雷下载</button>
+          <button class="btn-icon" data-original-url="${escapeHtml(url)}" data-action="copy">复制链接</button>
+        </div>
+      </div>`;
+    if (url !== currentTestUrl) {
+      currentTestUrl = url;
+      autoSpeedTest();
+    }
+  }
+  function hideDirectDownload() {
+    document.getElementById("directPanel").style.display = "none";
+    document.getElementById("directList").innerHTML = "";
+  }
+  function hideRepoPanel() {
+    document.getElementById("repoPanel").style.display = "none";
+    document.getElementById("releasePanel").style.display = "none";
+    document.getElementById("repoMeta").innerHTML = "";
+    document.getElementById("repoDesc").innerHTML = "";
+    document.getElementById("readmeBox").innerHTML = "";
+    document.getElementById("releaseList").innerHTML = "";
+    hideSourcePanel();
+  }
+
+  // ============================================================
+  // 16. 主解析
+  // ============================================================
+  document.getElementById("convertBtn").addEventListener("click", () => {
+    const raw = document.getElementById("urlInput").value;
+    const url = normalizeUrl(raw);
+    if (!url) { showToast("请先粘贴 GitHub 链接", true); return; }
+    document.getElementById("urlInput").value = url;
+
+    const info = classifyInput(url);
+    document.getElementById("typeHint").innerHTML = "";
+    hideDirectDownload();
+    hideRepoPanel();
+
+    if (info.kind === "repo") {
+      document.getElementById("typeHint").innerHTML = `<span class="tag tag-other">仓库</span> 已识别为仓库地址，下方展示版本和文件`;
+      loadRepoInfo(info.owner, info.repo);
+      loadReleases(info.owner, info.repo);
+    } else {
+      let label = info.label || "链接";
+      if (info.kind === "clone") label = "Git Clone";
+      document.getElementById("typeHint").innerHTML = `<span class="tag tag-release">${label}</span> 已识别，点击下方按钮下载`;
+      if (info.kind === "clone") {
+        document.getElementById("directPanel").style.display = "block";
+        document.getElementById("directList").innerHTML = `
+          <div class="asset-row">
+            <span class="asset-name">${escapeHtml(url)}</span>
+            <span class="asset-type-tag">Git Clone</span>
+            <div class="asset-actions">
+              <button class="btn-icon" data-original-url="${escapeHtml(url)}" data-action="copy">复制加速地址</button>
+            </div>
+          </div>`;
+      } else {
+        showDirectDownload(url, label);
+      }
+      const repoInfo = extractRepoInfo(url);
+      if (repoInfo) loadRepoInfo(repoInfo.owner, repoInfo.repo);
+    }
+  });
+
+  document.getElementById("urlInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("convertBtn").click();
+  });
+
+  // ============================================================
+  // 17. 节点事件
+  // ============================================================
+  document.getElementById("nodeSelectorHeader").addEventListener("click", () => toggleNodeSelector());
+  document.getElementById("testAllNodes").addEventListener("click", () => {
+    autoSpeedTest();
+    showToast("开始重新测速");
+  });
+  document.getElementById("addNodeBtn").addEventListener("click", () => {
+    const input = document.getElementById("newNodeInput");
+    const p = input.value.trim();
+    if (!p) return;
+    let full = /^https?:\/\//i.test(p) ? p : "https://" + p;
+    if (!full.endsWith("/")) full += "/";
+    let name; try { name = new URL(full).hostname; } catch (_) { name = "自定义"; }
+    nodes.push({ name, prefix: full });
+    saveNodes(nodes);
+    input.value = "";
+    renderNodeSelector();
+    showToast("节点已添加，正在重新测速");
+    autoSpeedTest();
+  });
+
+  // ============================================================
+  // 18. 授权事件
+  // ============================================================
+  document.getElementById("authToggleBtn").addEventListener("click", () => toggleAuthPanel());
+  document.getElementById("githubLoginBtn").addEventListener("click", () => startGitHubLogin());
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    clearToken();
+    updateAuthPanelVisibility();
+    showToast("已退出登录，恢复为 60次/小时");
+  });
+  document.getElementById("saveTokenBtn").addEventListener("click", () => {
+    const input = document.getElementById("tokenInput");
+    const token = input.value.trim();
+    if (token) {
+      saveToken(token, "manual");
+      rateLimitWarned = false;
+      showToast("个人 Token 已保存");
+    } else {
+      clearToken();
+      showToast("个人 Token 已清除", true);
+    }
+    updateAuthPanelVisibility();
+  });
+  document.getElementById("tokenInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("saveTokenBtn").click();
+  });
+  document.getElementById("modalGithubBtn").addEventListener("click", () => {
+    hideAuthModal(); toggleAuthPanel(true); startGitHubLogin();
+  });
+  document.getElementById("modalTokenBtn").addEventListener("click", () => {
+    hideAuthModal(); toggleAuthPanel(true, true);
+  });
+  document.getElementById("modalCloseBtn").addEventListener("click", hideAuthModal);
+
+  // ============================================================
+  // 19. 主题
+  // ============================================================
+  const themeBtn = document.getElementById("themeToggle");
+  if (localStorage.getItem("gh_theme") === "light") document.documentElement.setAttribute("data-theme", "light");
+  updateThemeBtn();
+  themeBtn.addEventListener("click", () => {
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    if (isLight) { document.documentElement.removeAttribute("data-theme"); localStorage.setItem("gh_theme", "dark"); }
+    else { document.documentElement.setAttribute("data-theme", "light"); localStorage.setItem("gh_theme", "light"); }
+    updateThemeBtn();
+  });
+  function updateThemeBtn() {
+    themeBtn.textContent = document.documentElement.getAttribute("data-theme") === "light" ? "☀️ 浅色" : "🌙 深色";
+  }
+
+  // ============================================================
+  // 20. 初始化
+  // ============================================================
+  (async function init() {
+    renderNodeSelector();
+    updateAuthPanelVisibility();
+    const handledCallback = await handleOAuthCallback();
+    if (!handledCallback && !getUserToken()) showAuthModal();
+    autoSpeedTest();
+    // 与自动测速并行：检测 GitHub 和 Worker 连通性
+    runConnectivityCheck(true);
+  })();
+</script>
+</body>
+</html>
